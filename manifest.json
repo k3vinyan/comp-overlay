@@ -1,0 +1,23 @@
+{
+  "manifest_version": 2,
+  "name": "Checkout",
+  "version": "1.0",
+  "description": "checkout",
+  "icons": { "16": "icon16.png",
+           "48": "icon48.png",
+          "128": "icon128.png"
+        },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://www.amazonlogistics.com/comp/packageSearch*"
+      ],
+      "js": ["jquery-3.3.1.min.js", "index.js" ],
+      "css": ["bootstrap.min.css", "main.css"]
+    }
+  ],
+  "background":
+  {
+    "scripts": ["jquery-3.3.1.min.js"]
+  }
+}
