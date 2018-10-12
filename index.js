@@ -1,3 +1,5 @@
+import $ from 'jquery';
+
 $( document ).ready(function(){
   let data = {};
   let cluster;
@@ -8,10 +10,6 @@ $( document ).ready(function(){
   dataLi.style = 'z-index: 1000;';
   dataLi.classList.add('hide-button', 'level1', 'inactive')
 
-  // const resetButton = document.createElement('button');
-  // resetButton.innerText = 'reset';
-  // resetButton.classList.add("resetButton");
-
   const createTableLi = document.createElement('li');
   createTableLi.innerHTML = "<a href='#' class='tabNoArrow'>Create Table</a><div class='rightCapNoArrow'></div>";
   createTableLi.id = 'createTableLi';
@@ -20,19 +18,12 @@ $( document ).ready(function(){
 
   $('#topNav').append(dataLi);
   $('#topNav').append(createTableLi);
-  //$('.greeter').after(resetButton);
-
-
-  $('.resetButton').click(function(){
-    data = resetData(data);
-  });
 
   $('#createTableLi').click(function(){
     createTracker(data);
     createTable(data, createTableCB);
 
     $('.route-tr').click(function(){
-      console.log('cat')
       updateCheckbox(this);
     })
     $('#topNavContainer').hide();
@@ -45,9 +36,8 @@ $( document ).ready(function(){
 
   function updateCheckbox(that){
     console.log(that)
-    console.log($(that)[0].children[5].children[0])
-    let bool = !($(that)[0].children[5].children[0].checked);
-    $(that)[0].children[5].children[0].checked = bool;
+    let bool = !($(that)[0].children[3].children[0].checked);
+    $(that)[0].children[3].children[0].checked = bool;
     if(bool){
       let count = parseInt($('#routeCount')[0].innerText) - 1;
       $('#routeCount')[0].innerText = count;
@@ -145,7 +135,7 @@ $( document ).ready(function(){
 
       if(regex.test(route)){
         let item = {
-          flexRoute: false,
+          type: "",
           total: 0,
           atStation: 0,
           betweenStation: 0,
@@ -202,9 +192,6 @@ $( document ).ready(function(){
         }
       }
     }
-
-    console.log(data);
-
   })
 
   function resetData(data){
@@ -232,11 +219,11 @@ $( document ).ready(function(){
       "<table class='table table-hover' id='routeTable'>" +
         "<thead>" +
           "<tr>" +
-            "<th>Route</th>" +
+            "<th class='text-center'>Route</th>" +
             "<th class='text-center'>Type</th>" +
-            "<th class='text-center'>Between Stations</th>" +
-            "<th class='text-center'>At Station</th>" +
-            "<th class='text-center'>Total</th>" +
+            //"<th class='text-center'>Between Stations</th>" +
+            "<th class='text-center'>Count</th>" +
+            //"<th class='text-center'>Total</th>" +
             "<th class='text-center'>Check Out</th>" +
           "</tr>" +
         "</thead>" +
@@ -254,27 +241,27 @@ $( document ).ready(function(){
       keyArr[value] = keys[i]
     }
 
-    for(i in keyArr){
+    for(let i in keyArr){
       let route = keyArr[i];
       if(route != undefined){
         if(data[route]['type'] === 'FLEX'){
           table +=
             "<tr class='route-tr'>" +
-              "<td>" + route + "</td>" +
+              "<td class='text-center font-weight-bold'>" + route + "</td>" +
               "<td class='text-center'>" + data[route]['type'] + "</td>" +
-              "<td class='text-center'>" + data[route]['betweenStation'] + "</td>" +
-              "<td class='text-center'>" + data[route]['atStation'] + "</td>" +
-              "<td class='text-center'>" + data[route]['total'] + "</td>" +
+              //"<td class='text-center'>" + data[route]['betweenStation'] + "</td>" +
+              "<td class='text-center font-weight-bold'>" + data[route]['atStation'] + "</td>" +
+              //"<td class='text-center'>" + data[route]['total'] + "</td>" +
               "<td class='text-center'><input type='checkbox' class='checkbox' value=" + route + "></td>" +
             "<tr>"
         } else {
           table +=
             "<tr class='table-dark'>" +
-              "<td>" + route + "</td>" +
+              "<td class='text-center'>" + route + "</td>" +
               "<td class='text-center'>" + data[route]['type'] + "</td>" +
-              "<td class='text-center'>" + data[route]['betweenStation'] + "</td>" +
+              //"<td class='text-center'>" + data[route]['betweenStation'] + "</td>" +
               "<td class='text-center'>" + data[route]['atStation'] + "</td>" +
-              "<td class='text-center'>" + data[route]['total'] + "</td>" +
+              //"<td class='text-center'>" + data[route]['total'] + "</td>" +
               "<td class='text-center'><input type='checkbox' class='checkbox' value=" + route + " checked></td>" +
             "<tr>"
         }
@@ -290,7 +277,16 @@ $( document ).ready(function(){
   }
 
   function createTracker(data){
-    let count = "<span id='routeCount'>" + Object.keys(data).length + "</span>"
+    let c = 0;
+    console.log(data)
+    for(let key in data){
+      if(data[key]['type'] === 'FLEX'){
+        c++
+      }
+    }
+
+
+    let count = "<span id='routeCount'>" + c + "</span>"
     const str = "<h1>ROUTES LEFT ON SITE: " + count + "</h1>";
     $('.greeter-user-info')[0].children[0].innerHTML = str;
   }
@@ -315,5 +311,3 @@ function filter(){
     }
   }
 }
-
-//text-decoration: line-through;
