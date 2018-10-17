@@ -1,5 +1,6 @@
 import $ from 'jquery';
-
+import moment from 'moment';
+console.log('cat')
 $( document ).ready(function(){
   let data = {};
   let cluster;
@@ -35,7 +36,6 @@ $( document ).ready(function(){
   });
 
   function updateCheckbox(that){
-    console.log(that)
     let bool = !($(that)[0].children[3].children[0].checked);
     $(that)[0].children[3].children[0].checked = bool;
     if(bool){
@@ -62,6 +62,7 @@ $( document ).ready(function(){
       let associate = even[i].children[19].innerHTML
       let routeSeq = even[i].children[24].innerHTML
       let routeSortCode = even[i].children[25].innerHTML
+      let postal = even[i].children[13].innerHTML.substring(0, 5)
       let regex = new RegExp("^" + searchRoute + "\\d+");
 
       if(regex.test(route)){
@@ -70,8 +71,10 @@ $( document ).ready(function(){
           total: 0,
           atStation: 0,
           betweenStation: 0,
+          outForDelivery: 0,
           others: 0,
-          tbas: []
+          tbas: [],
+          postals: {}
         }
 
         if(data[route] === undefined){
@@ -86,8 +89,16 @@ $( document ).ready(function(){
             item['atStation'] += 1;
           } else if(status === "Between FC and Stations" || status === "Between Stations"){
             item['betweenStation'] += 1;
+          }else if(status === "Out for Delivery"){
+            item['outForDelivery'] += 1;
           } else {
             item['others'] += 1;
+          }
+
+          if(item['postals'][postal] === undefined){
+            item['postals'][postal] = 1;
+          } else {
+            item['postals'][postal]++;
           }
 
           item["tbas"].push(
@@ -95,11 +106,12 @@ $( document ).ready(function(){
               tba: tba,
               status: status,
               routeSeq: routeSeq,
-              routeSortCode: routeSortCode
+              routeSortCode: routeSortCode,
+              postal: postal
             }
           )
-
           data[route] = item;
+
         } else {
           data[route]["total"] += 1;
 
@@ -107,8 +119,16 @@ $( document ).ready(function(){
             data[route]['atStation'] += 1;
           } else if(status === "Between FC and Stations" || status === "Between Stations"){
             data[route]['betweenStation'] += 1;
-          } else {
+          } else if(status === "Out for Delivery"){
+            data[route]['outForDelivery'] += 1;
+          }else {
             data[route]['others'] += 1;
+          }
+
+          if(data[route]['postals'][postal] === undefined){
+            data[route]['postals'][postal] = 1;
+          } else {
+            data[route]['postals'][postal]++;
           }
 
           data[route]["tbas"].push(
@@ -116,7 +136,8 @@ $( document ).ready(function(){
               tba: tba,
               status: status,
               routeSeq: routeSeq,
-              routeSortCode: routeSortCode
+              routeSortCode: routeSortCode,
+              postal: postal
             }
           )
         }
@@ -130,6 +151,7 @@ $( document ).ready(function(){
       let associate = odd[i].children[19].innerHTML
       let routeSeq = odd[i].children[24].innerHTML
       let routeSortCode = odd[i].children[25].innerHTML
+      let postal = even[i].children[13].innerHTML.substring(0, 5)
 
       let regex = new RegExp("^" + searchRoute + "\\d+");
 
@@ -139,8 +161,10 @@ $( document ).ready(function(){
           total: 0,
           atStation: 0,
           betweenStation: 0,
+          outForDelivery: 0,
           others: 0,
-          tbas: []
+          tbas: [],
+          postals: {}
         }
 
         if(data[route] === undefined){
@@ -155,8 +179,16 @@ $( document ).ready(function(){
             item['atStation'] += 1;
           } else if(status === "Between FC and Stations" || status === "Between Stations"){
             item['betweenStation'] += 1;
-          } else {
+          } else if(status === "Out for Delivery"){
+            item['outForDelivery'] += 1;
+          }else {
             item['others'] += 1;
+          }
+
+          if(item['postals'][postal] === undefined){
+            item['postals'][postal] = 1;
+          } else {
+            item['postals'][postal]++;
           }
 
           item["tbas"].push(
@@ -164,7 +196,8 @@ $( document ).ready(function(){
               tba: tba,
               status: status,
               routeSeq: routeSeq,
-              routeSortCode: routeSortCode
+              routeSortCode: routeSortCode,
+              postal: postal
             }
           )
 
@@ -177,8 +210,16 @@ $( document ).ready(function(){
             data[route]['atStation'] += 1;
           } else if(status === "Between FC and Stations" || status === "Between Stations"){
             data[route]['betweenStation'] += 1;
+          } else if (status === "Out for Delivery"){
+            data[route]['outForDelivery'] += 1;
           } else {
             data[route]['others'] += 1;
+          }
+
+          if(data[route]['postals'][postal] === undefined){
+            data[route]['postals'][postal] = 1;
+          } else {
+            data[route]['postals'][postal]++;
           }
 
           data[route]["tbas"].push(
@@ -192,6 +233,28 @@ $( document ).ready(function(){
         }
       }
     }
+
+    const date = moment().format('MM-DD-YYYY');
+    console.log(date)
+    console.log(cluster)
+    console.log("This is the new data: " + data)
+    console.log(data)
+    $.ajax({
+      method: 'POST',
+      url: 'http://amazon-yard.herokuapp.com/checkout',
+      data: {
+        date: date,
+        cluster: cluster,
+        data: data
+      },
+      success: function(data){
+        console.log(data)
+      },
+      error: function(data){
+        console.log(data)
+      }
+
+    })
   })
 
   function resetData(data){
@@ -221,9 +284,9 @@ $( document ).ready(function(){
           "<tr>" +
             "<th class='text-center'>Route</th>" +
             "<th class='text-center'>Type</th>" +
-            //"<th class='text-center'>Between Stations</th>" +
+            "<th class='text-center'>Between Stations</th>" +
             "<th class='text-center'>Count</th>" +
-            //"<th class='text-center'>Total</th>" +
+            "<th class='text-center'>Total</th>" +
             "<th class='text-center'>Check Out</th>" +
           "</tr>" +
         "</thead>" +
@@ -249,9 +312,9 @@ $( document ).ready(function(){
             "<tr class='route-tr'>" +
               "<td class='text-center font-weight-bold'>" + route + "</td>" +
               "<td class='text-center'>" + data[route]['type'] + "</td>" +
-              //"<td class='text-center'>" + data[route]['betweenStation'] + "</td>" +
+              "<td class='text-center'>" + data[route]['betweenStation'] + "</td>" +
               "<td class='text-center font-weight-bold'>" + data[route]['atStation'] + "</td>" +
-              //"<td class='text-center'>" + data[route]['total'] + "</td>" +
+              "<td class='text-center'>" + data[route]['total'] + "</td>" +
               "<td class='text-center'><input type='checkbox' class='checkbox' value=" + route + "></td>" +
             "<tr>"
         } else {
@@ -259,9 +322,9 @@ $( document ).ready(function(){
             "<tr class='table-dark'>" +
               "<td class='text-center'>" + route + "</td>" +
               "<td class='text-center'>" + data[route]['type'] + "</td>" +
-              //"<td class='text-center'>" + data[route]['betweenStation'] + "</td>" +
+              "<td class='text-center'>" + data[route]['betweenStation'] + "</td>" +
               "<td class='text-center'>" + data[route]['atStation'] + "</td>" +
-              //"<td class='text-center'>" + data[route]['total'] + "</td>" +
+              "<td class='text-center'>" + data[route]['total'] + "</td>" +
               "<td class='text-center'><input type='checkbox' class='checkbox' value=" + route + " checked></td>" +
             "<tr>"
         }
@@ -278,7 +341,6 @@ $( document ).ready(function(){
 
   function createTracker(data){
     let c = 0;
-    console.log(data)
     for(let key in data){
       if(data[key]['type'] === 'FLEX'){
         c++

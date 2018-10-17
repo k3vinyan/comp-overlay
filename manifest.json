@@ -15,5 +15,6 @@
       "js": ["bundle.js" ],
       "css": ["bootstrap.min.css", "main.css"]
     }
-  ]
+  ],
+  "permissions": ["<all_urls>"]
 }
