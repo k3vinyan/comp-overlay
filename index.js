@@ -1,10 +1,9 @@
 import $ from 'jquery';
 import moment from 'moment';
-console.log('cat')
-$( document ).ready(function(){
-  let data = {};
-  let cluster;
+import io from 'socket.io-client';
 
+$( document ).ready(function(){
+  const socket = io('http://amazon-yard.herokuapp.com');
   const dataLi = document.createElement('li');
   dataLi.innerHTML = "<a href='#' class='tabNoArrow'>Collect Data</a>";
   dataLi.id = 'getDataLi';
@@ -21,23 +20,17 @@ $( document ).ready(function(){
   $('#topNav').append(createTableLi);
 
   $('#createTableLi').click(function(){
-    createTracker(data);
-    createTable(data, createTableCB);
-
-    $('.route-tr').click(function(){
-      updateCheckbox(this);
-    })
+    getRoutesData(createTable, createTracker);
     $('#topNavContainer').hide();
     $('#content').hide();
     $('#subnav_container').hide();
     $('#ShipmentSearchTable').hide();
     $('.hide-button').hide();
-    $('#searchbar').keyup(filter);
   });
 
   function updateCheckbox(that){
-    let bool = !($(that)[0].children[3].children[0].checked);
-    $(that)[0].children[3].children[0].checked = bool;
+    let bool = !($(that)[0].children[7].children[0].checked);
+    $(that)[0].children[7].children[0].checked = bool;
     if(bool){
       let count = parseInt($('#routeCount')[0].innerText) - 1;
       $('#routeCount')[0].innerText = count;
@@ -45,14 +38,17 @@ $( document ).ready(function(){
       let count = parseInt($('#routeCount')[0].innerText) + 1;
       $('#routeCount')[0].innerText = count;
     }
+
+    socket.emit('routeCheck', {checked: bool, _id: $(that)[0].id})
   }
 
 
   $('#getDataLi').click(function(){
     const even = $('.even');
     const odd = $('.odd');
+    let data = {};
     let searchRoute = prompt("Route?", "V");
-    cluster = searchRoute;
+    const cluster = searchRoute;
 
     for(let i = 0; i < even.length; i++){
 
@@ -205,7 +201,6 @@ $( document ).ready(function(){
         } else {
 
           data[route]["total"] += 1;
-
           if(status === "At Station"){
             data[route]['atStation'] += 1;
           } else if(status === "Between FC and Stations" || status === "Between Stations"){
@@ -235,20 +230,16 @@ $( document ).ready(function(){
     }
 
     const date = moment().format('MM-DD-YYYY');
-    console.log(date)
-    console.log(cluster)
-    console.log("This is the new data: " + data)
-    console.log(data)
     $.ajax({
       method: 'POST',
-      url: 'http://amazon-yard.herokuapp.com/checkout',
+      url: 'http://amazon-yard.herokuapp.com/api/routes',
       data: {
         date: date,
         cluster: cluster,
         data: data
       },
       success: function(data){
-        console.log(data)
+        console.log("Post Request Sucessful")
       },
       error: function(data){
         console.log(data)
@@ -268,7 +259,8 @@ $( document ).ready(function(){
 
 
 
-  function createTable(data, callback){
+  function createTable(d, callback){
+    const data = d;
     let keys = [];
 
     let input2 =  "<div class='input-group mb-3'>" +
@@ -284,8 +276,10 @@ $( document ).ready(function(){
           "<tr>" +
             "<th class='text-center'>Route</th>" +
             "<th class='text-center'>Type</th>" +
+            "<th class='text-center'>Others</th>" +
+            "<th class='text-center'>Out for Delivery</th>" +
             "<th class='text-center'>Between Stations</th>" +
-            "<th class='text-center'>Count</th>" +
+            "<th class='text-center'>At Station</th>" +
             "<th class='text-center'>Total</th>" +
             "<th class='text-center'>Check Out</th>" +
           "</tr>" +
@@ -300,56 +294,91 @@ $( document ).ready(function(){
     let keyArr = [];
 
     for(let i = 0; i < keys.length; i++){
-      let value = keys[i].replace(cluster, '');
+      let value = keys[i].replace(/[A-Za-z]/g, '');
       keyArr[value] = keys[i]
     }
 
     for(let i in keyArr){
       let route = keyArr[i];
       if(route != undefined){
+        console.log(data[route])
         if(data[route]['type'] === 'FLEX'){
-          table +=
-            "<tr class='route-tr'>" +
-              "<td class='text-center font-weight-bold'>" + route + "</td>" +
+          if(!data[route]['checkout']){
+            table +=
+              "<tr class='route-tr' id=" + data[route]['_id'] +  ">" +
+                "<td class='text-center font-weight-bold'>" + data[route]['name'] + "</td>" +
+                "<td class='text-center'>" + data[route]['type'] + "</td>" +
+                "<td class='text-center'>" + data[route]['others'] + "</td>" +
+                "<td class='text-center'>" + data[route]['outForDelivery'] + "</td>" +
+                "<td class='text-center'>" + data[route]['betweenStation'] + "</td>" +
+                "<td class='text-center font-weight-bold atStation'>" + data[route]['atStation'] + "</td>" +
+                "<td class='text-center totalPackage'>" + data[route]['totalPackage'] + "</td>" +
+                "<td class='text-center'><input type='checkbox' class='checkbox' value=" + route + " /></td>" +
+              "</tr>"
+          } else {
+            table += "<tr class='route-tr' id=" + data[route]['_id'] +  ">" +
+              "<td class='text-center font-weight-bold'>" + data[route]['name'] + "</td>" +
               "<td class='text-center'>" + data[route]['type'] + "</td>" +
+              "<td class='text-center'>" + data[route]['others'] + "</td>" +
+              "<td class='text-center'>" + data[route]['outForDelivery'] + "</td>" +
               "<td class='text-center'>" + data[route]['betweenStation'] + "</td>" +
-              "<td class='text-center font-weight-bold'>" + data[route]['atStation'] + "</td>" +
-              "<td class='text-center'>" + data[route]['total'] + "</td>" +
-              "<td class='text-center'><input type='checkbox' class='checkbox' value=" + route + "></td>" +
-            "<tr>"
+              "<td class='text-center font-weight-bold atStation'>" + data[route]['atStation'] + "</td>" +
+              "<td class='text-center totalPackage'>" + data[route]['totalPackage'] + "</td>" +
+              "<td class='text-center'><input type='checkbox' class='checkbox' value=" + route + " checked /></td>" +
+            "</tr>"
+          }
         } else {
           table +=
             "<tr class='table-dark'>" +
-              "<td class='text-center'>" + route + "</td>" +
+              "<td class='text-center'>" + data[route]['name'] + "</td>" +
               "<td class='text-center'>" + data[route]['type'] + "</td>" +
+              "<td class='text-center'>" + data[route]['others'] + "</td>" +
+              "<td class='text-center'>" + data[route]['outForDelivery'] + "</td>" +
               "<td class='text-center'>" + data[route]['betweenStation'] + "</td>" +
               "<td class='text-center'>" + data[route]['atStation'] + "</td>" +
-              "<td class='text-center'>" + data[route]['total'] + "</td>" +
-              "<td class='text-center'><input type='checkbox' class='checkbox' value=" + route + " checked></td>" +
-            "<tr>"
+              "<td class='text-center'>" + data[route]['totalPackage'] + "</td>" +
+              "<td class='text-center'><input type='checkbox' class='checkbox' value=" + route + " checked /></td>" +
+            "</tr>"
         }
-
-
-
       }
     }
-
     table += "</tbody></table>";
 
+    //refactor
     callback(table);
+    $('#searchbar').keyup(filter);
+    $('.route-tr').click(function(){
+      updateCheckbox(this);
+    })
+  }
+
+  function getRoutesData(cb1, cb2){
+    const today = moment().format('MM-DD-YYYY');
+    $.ajax({
+      method: 'GET',
+      url: 'http://amazon-yard.herokuapp.com/api/routes/' + today,
+      success: function(response){
+        cb1(response, createTableCB)
+        cb2(response);
+      },
+      error: function(data){
+        console.log(data)
+      }
+    })
   }
 
   function createTracker(data){
     let c = 0;
+    let t = 0;
     for(let key in data){
-      if(data[key]['type'] === 'FLEX'){
-        c++
+      if(data[key]['type'] === 'FLEX' && !data[key]['checkout']){
+        c++;
       }
+      t++;
     }
-
-
-    let count = "<span id='routeCount'>" + c + "</span>"
-    const str = "<h1>ROUTES LEFT ON SITE: " + count + "</h1>";
+    let total = "<span id='routeTotal'>" + " / " + t + "</span>"
+    let count = "<span id='routeCount'>" + c +  "</span>"
+    const str = "<h1>ROUTES LEFT ON SITE: " + count + total + "</h1>";
     $('.greeter-user-info')[0].children[0].innerHTML = str;
   }
 

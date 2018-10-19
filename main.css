@@ -9,3 +9,12 @@
 h1 {
   color: black;
 }
+
+.atStation {
+  font-size: 15px;
+  color: red;
+}
+.totalPackage {
+  font-size: 15px;
+  color: blue;
+}
